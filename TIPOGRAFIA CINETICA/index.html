@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MINECRAFT — Cubetti 3D</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { overflow: hidden; background: #1a1a2e; }
+  canvas { display: block; }
+  #title {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: rgba(255,255,255,0.25);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    z-index: 10;
+    pointer-events: none;
+  }
+  #flicker {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: white;
+    z-index: 100;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.05s;
+  }
+  #gravity-hint {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: rgba(255,255,255,0.2);
+    letter-spacing: 2px;
+    z-index: 10;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div id="title">MINECRAFT — CUBETTI 3D</div>
+<div id="flicker"></div>
+<div id="gravity-hint">PREMI G PER ATTIVARE/DISATTIVARE LA GRAVITÀ</div>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb);
+
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(0, 12, 18);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = false;
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 5;
+controls.maxDistance = 50;
+controls.target.set(0, 0, 0);
+
+const ambientLight = new THREE.AmbientLight(0x404060, 0.6);
+scene.add(ambientLight);
+
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+dirLight.position.set(10, 20, 10);
+scene.add(dirLight);
+
+const fillLight = new THREE.DirectionalLight(0x8888ff, 0.3);
+fillLight.position.set(-10, 5, -10);
+scene.add(fillLight);
+
+const ground = new THREE.Mesh(
+     new THREE.PlaneGeometry(2000, 2000),
+  new THREE.MeshStandardMaterial({ color: 0x4a8c2a, roughness: 1 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -23;
+scene.add(ground);
+
+
+const LETTERS = 'MINECRAFT';
+const GRID_W = 8;
+const GRID_H = 10;
+const SPACING = 2;
+
+const BITMAPS = {
+  M: [
+    0,0,0,0,0,0,0,0,
+    1,0,0,0,0,0,0,1,
+    1,1,0,0,0,0,1,1,
+    1,0,1,0,0,1,0,1,
+    1,0,0,1,1,0,0,1,
+    1,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,1,
+    0,0,0,0,0,0,0,0,
+  ],
+  I: [
+    0,0,0,0,0,0,0,0,
+    0,0,0,1,1,0,0,0,
+    0,0,0,1,1,0,0,0,
+    0,0,0,1,1,0,0,0,
+    0,0,0,1,1,0,0,0,
+    0,0,0,1,1,0,0,0,
+    0,0,0,1,1,0,0,0,
+    0,0,0,1,1,0,0,0,
+    0,0,0,1,1,0,0,0,
+    0,0,0,0,0,0,0,0,
+  ],
+  N: [
+    0,0,0,0,0,0,0,0,
+    1,0,0,0,0,0,0,1,
+    1,1,0,0,0,0,0,1,
+    1,0,1,0,0,0,0,1,
+    1,0,0,1,0,0,0,1,
+    1,0,0,0,1,0,0,1,
+    1,0,0,0,0,1,0,1,
+    1,0,0,0,0,0,1,1,
+    1,0,0,0,0,0,0,1,
+    0,0,0,0,0,0,0,0,
+  ],
+  E: [
+    0,0,0,0,0,0,0,0,
+    1,1,1,1,1,1,1,1,
+    1,0,0,0,0,0,0,0,
+    1,0,0,0,0,0,0,0,
+    1,1,1,1,1,0,0,0,
+    1,0,0,0,0,0,0,0,
+    1,0,0,0,0,0,0,0,
+    1,0,0,0,0,0,0,0,
+    1,1,1,1,1,1,1,1,
+    0,0,0,0,0,0,0,0,
+  ],
+  C: [
+    0,0,0,0,0,0,0,0,
+    0,1,1,1,1,1,1,0,
+    1,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,0,
+    1,0,0,0,0,0,0,0,
+    1,0,0,0,0,0,0,0,
+    1,0,0,0,0,0,0,0,
+    1,0,0,0,0,0,0,1,
+    0,1,1,1,1,1,1,0,
+    0,0,0,0,0,0,0,0,
+  ],
+  R: [
+    0,0,0,0,0,0,0,0,
+    1,1,1,1,1,1,0,0,
+    1,0,0,0,0,0,1,0,
+    1,0,0,0,0,0,1,0,
+    1,1,1,1,1,1,0,0,
+    1,0,0,1,1,0,0,0,
+    1,0,0,0,1,0,0,0,
+    1,0,0,0,0,1,0,0,
+    1,0,0,0,0,0,1,0,
+    0,0,0,0,0,0,0,0,
+  ],
+  A: [
+    0,0,0,0,0,0,0,0,
+    0,0,0,1,1,0,0,0,
+    0,0,1,0,0,1,0,0,
+    0,1,0,0,0,0,1,0,
+    1,0,0,0,0,0,0,1,
+    1,1,1,1,1,1,1,1,
+    1,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,1,
+    1,0,0,0,0,0,0,1,
+    0,0,0,0,0,0,0,0,
+  ],
+  F: [
+    0,0,0,0,0,0,0,0,
+    1,1,1,1,1,1,1,1,
+    1,0,0,0,0,0,0,0,
+    1,0,0,0,0,0,0,0,
+    1,1,1,1,1,0,0,0,
+    1,0,0,0,0,0,0,0,
+    1,0,0,0,0,0,0,0,
+    1,0,0,0,0,0,0,0,
+    1,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,
+  ],
+  T: [
+    0,0,0,0,0,0,0,0,
+    1,1,1,1,1,1,1,1,
+    0,0,0,1,1,0,0,0,
+    0,0,0,1,1,0,0,0,
+    0,0,0,1,1,0,0,0,
+    0,0,0,1,1,0,0,0,
+    0,0,0,1,1,0,0,0,
+    0,0,0,1,1,0,0,0,
+    0,0,0,1,1,0,0,0,
+    0,0,0,0,0,0,0,0,
+  ],
+};
+
+function getLetterOffset(letterIndex) {
+  let offset = 0;
+  for (let i = 0; i < letterIndex; i++) {
+    offset += GRID_W + SPACING;
+  }
+  return offset;
+}
+
+function createBlockTexture(name) {
+  const size = 16;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  const pixel = (x, y, r, g, b) => {
+    ctx.fillStyle = `rgb(${r},${g},${b})`;
+    ctx.fillRect(x, y, 1, 1);
+  };
+  const fillAll = (r, g, b) => {
+    for (let x = 0; x < size; x++)
+      for (let y = 0; y < size; y++)
+        pixel(x, y, r, g, b);
+  };
+
+  switch (name) {
+    case 'grass': {
+      fillAll(140, 85, 55);
+      for (let x = 0; x < size; x++) {
+        for (let y = 0; y < 4; y++) {
+          const g = 100 + Math.random() * 60 | 0;
+          pixel(x, y, 70 + Math.random() * 30 | 0, g, 40 + Math.random() * 30 | 0);
+        }
+        pixel(x, 4, 100, 60, 35);
+      }
+      break;
+    }
+    case 'stone': {
+      fillAll(120, 120, 120);
+      for (let i = 0; i < 40; i++) {
+        const x = Math.random() * size | 0;
+        const y = Math.random() * size | 0;
+        const v = 90 + Math.random() * 50 | 0;
+        pixel(x, y, v, v, v);
+      }
+      break;
+    }
+    case 'dirt': {
+      fillAll(120, 85, 50);
+      for (let i = 0; i < 50; i++) {
+        const x = Math.random() * size | 0;
+        const y = Math.random() * size | 0;
+        pixel(x, y, 100 + Math.random() * 40 | 0, 70 + Math.random() * 30 | 0, 40 + Math.random() * 20 | 0);
+      }
+      break;
+    }
+    case 'planks': {
+      fillAll(160, 130, 60);
+      for (let y = 0; y < size; y++) {
+        if (y % 4 === 0 || y % 4 === 1) {
+          for (let x = 0; x < size; x++) {
+            pixel(x, y, 140, 110, 45);
+          }
+        }
+      }
+      for (let i = 0; i < 10; i++) {
+        const x = Math.random() * size | 0;
+        const y = Math.random() * size | 0;
+        pixel(x, y, 120, 95, 35);
+      }
+      break;
+    }
+    case 'cobble': {
+      fillAll(110, 110, 110);
+      for (let i = 0; i < 15; i++) {
+        const sx = Math.random() * size | 0;
+        const sy = Math.random() * size | 0;
+        for (let dx = 0; dx < 3; dx++)
+          for (let dy = 0; dy < 3; dy++)
+            if (sx + dx < size && sy + dy < size)
+              pixel(sx + dx, sy + dy, 80, 80, 80);
+      }
+      break;
+    }
+    case 'brick': {
+      fillAll(150, 80, 50);
+      for (let row = 0; row < 4; row++) {
+        for (let col = 0; col < 2; col++) {
+          const bx = col * 8 + (row % 2 === 0 ? 0 : -4);
+          const by = row * 4;
+          for (let y = by; y < by + 4 && y < size; y++) {
+            for (let x = Math.max(0, bx); x < Math.min(size, bx + 8); x++) {
+              const v = Math.random() * 20 | 0;
+              pixel(x, y, 130 + v, 65 + v, 35 + v);
+            }
+          }
+        }
+      }
+      // Mortar
+      for (let y = 0; y < size; y += 4) {
+        for (let x = 0; x < size; x++)
+          pixel(x, y, 180, 170, 150);
+      }
+      for (let x = 0; x < size; x += 8) {
+        for (let y = 0; y < size; y++)
+          pixel(x, y, 180, 170, 150);
+      }
+      break;
+    }
+    case 'gold': {
+      fillAll(220, 200, 50);
+      for (let i = 0; i < 30; i++) {
+        const x = Math.random() * size | 0;
+        const y = Math.random() * size | 0;
+        pixel(x, y, 240, 220, 80);
+      }
+      for (let i = 0; i < 10; i++) {
+        const x = Math.random() * size | 0;
+        const y = Math.random() * size | 0;
+        pixel(x, y, 180, 160, 30);
+      }
+      break;
+    }
+    case 'diamond': {
+      fillAll(60, 200, 180);
+      for (let i = 0; i < 20; i++) {
+        const x = Math.random() * size | 0;
+        const y = Math.random() * size | 0;
+        pixel(x, y, 120, 230, 210);
+      }
+      for (let i = 0; i < 8; i++) {
+        const x = Math.random() * size | 0;
+        const y = Math.random() * size | 0;
+        pixel(x, y, 40, 160, 140);
+      }
+      break;
+    }
+    case 'netherrack': {
+      fillAll(100, 40, 40);
+      for (let i = 0; i < 60; i++) {
+        const x = Math.random() * size | 0;
+        const y = Math.random() * size | 0;
+        pixel(x, y, 120 + Math.random() * 40 | 0, 30 + Math.random() * 30 | 0, 30 + Math.random() * 20 | 0);
+      }
+      break;
+    }
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.magFilter = THREE.NearestFilter;
+  texture.minFilter = THREE.NearestFilter;
+  return texture;
+}
+
+const TEXTURE_NAMES = ['grass', 'stone', 'dirt', 'planks', 'cobble', 'brick', 'gold', 'diamond', 'netherrack'];
+const TEXTURES = TEXTURE_NAMES.map(createBlockTexture);
+
+const CUBE_SIZE = 0.8;
+const GAP = 0.05;
+const cubeSize = CUBE_SIZE - GAP;
+
+let allCubes = [];
+
+LETTERS.split('').forEach((char, letterIdx) => {
+  const bitmap = BITMAPS[char];
+  if (!bitmap) return;
+  const offsetX = getLetterOffset(letterIdx);
+
+  for (let row = 0; row < GRID_H; row++) {
+    for (let col = 0; col < GRID_W; col++) {
+      const idx = row * GRID_W + col;
+      if (!bitmap[idx]) continue;
+
+      const targetX = (offsetX + col - (GRID_W * LETTERS.length + SPACING * (LETTERS.length - 1)) / 2) * CUBE_SIZE;
+      const targetY = (GRID_H - 1 - row - GRID_H / 2) * CUBE_SIZE;
+
+      const DEPTH_LAYERS = 3;
+      for (let layer = 0; layer < DEPTH_LAYERS; layer++) {
+        const targetZ = (layer - (DEPTH_LAYERS - 1) / 2) * CUBE_SIZE;
+
+        const texIdx = allCubes.length % TEXTURES.length;
+        const mat = new THREE.MeshStandardMaterial({
+          map: TEXTURES[texIdx],
+          roughness: 0.7,
+          metalness: 0.1,
+        });
+
+        const cube = new THREE.Mesh(new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize), mat);
+
+        const startY = 20 + Math.random() * 8;
+        cube.position.set(
+          targetX + (Math.random() - 0.5) * 6,
+          targetY + startY,
+          targetZ + (Math.random() - 0.5) * 6
+        );
+
+        cube.userData = {
+          targetPos: new THREE.Vector3(targetX, targetY, targetZ),
+          startPos: cube.position.clone(),
+          progress: 0,
+          arrived: false,
+          startRot: new THREE.Euler(Math.random() * 2, Math.random() * 2, Math.random() * 2),
+          letterIdx: letterIdx,
+        };
+
+        scene.add(cube);
+        allCubes.push(cube);
+      }
+    }
+  }
+});
+
+allCubes.sort(() => Math.random() - 0.5);
+
+let currentCubeIdx = 0;
+let lastCubeTime = 0;
+const TICK_INTERVAL = 5;
+
+let gravityEnabled = false;
+const GRAVITY_STRENGTH = 0.018;
+const GROUND_Y = -23 + cubeSize / 2;
+
+function triggerFlicker() {
+  const el = document.getElementById('flicker');
+  el.style.opacity = '1';
+  el.style.transition = 'none';
+  requestAnimationFrame(() => {
+    el.style.transition = 'opacity 0.15s';
+    el.style.opacity = '0';
+  });
+}
+
+function toggleGravity() {
+  gravityEnabled = !gravityEnabled;
+  document.getElementById('gravity-hint').style.display = 'none';
+  if (gravityEnabled) {
+    triggerFlicker();
+  }
+}
+
+const letterGroups = 'MINECRAFT'.split('').map((_, idx) => ({
+  cubes: allCubes.filter(c => c.userData.letterIdx === idx && c.userData.arrived !== undefined),
+  velocity: new THREE.Vector3(0, 0, 0),
+}));
+let draggingGroup = null;
+
+function easeOutBack(t) {
+  const c1 = 1.70158;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+}
+
+function animate(time) {
+  requestAnimationFrame(animate);
+
+  if (currentCubeIdx < allCubes.length && time - lastCubeTime > TICK_INTERVAL) {
+    lastCubeTime = time;
+    currentCubeIdx++;
+  }
+
+  for (let i = 0; i < allCubes.length; i++) {
+    const cube = allCubes[i];
+    const data = cube.userData;
+
+    if (!data.arrived && i < currentCubeIdx) {
+      data.progress += 0.15;
+      if (data.progress >= 1) {
+        data.progress = 1;
+        data.arrived = true;
+        cube.position.copy(data.targetPos);
+        cube.rotation.set(0, 0, 0);
+      } else {
+        const t = easeOutBack(data.progress);
+        cube.position.lerpVectors(data.startPos, data.targetPos, t);
+        cube.rotation.x = data.startRot.x * (1 - data.progress);
+        cube.rotation.y = data.startRot.y * (1 - data.progress);
+        cube.rotation.z = data.startRot.z * (1 - data.progress);
+      }
+    }
+  }
+
+  if (gravityEnabled) {
+    const h = cubeSize / 2;
+    for (const g of letterGroups) {
+      const xs = g.cubes.map(c => c.position.x);
+      const zs = g.cubes.map(c => c.position.z);
+      g.minX = Math.min(...xs) - h;
+      g.maxX = Math.max(...xs) + h;
+      g.minZ = Math.min(...zs) - h;
+      g.maxZ = Math.max(...zs) + h;
+    }
+    const sorted = [...letterGroups].sort((a, b) =>
+      Math.min(...a.cubes.map(c => c.position.y)) - Math.min(...b.cubes.map(c => c.position.y))
+    );
+    for (const group of sorted) {
+      if (group === draggingGroup) continue;
+      group.velocity.y -= GRAVITY_STRENGTH;
+
+      const groupMinY = Math.min(...group.cubes.map(c => c.position.y));
+      const newMinY = groupMinY + group.velocity.y;
+
+      let stopY = null;
+      const groundStop = GROUND_Y + cubeSize / 2;
+      if (newMinY <= groundStop) stopY = groundStop;
+
+      for (const other of sorted) {
+        if (other === group) break;
+        const otherMaxY = Math.max(...other.cubes.map(c => c.position.y));
+        const otherStop = otherMaxY + cubeSize;
+        if (newMinY <= otherStop && groupMinY >= otherMaxY) {
+          const xOverlap = group.minX < other.maxX && group.maxX > other.minX;
+          const zOverlap = group.minZ < other.maxZ && group.maxZ > other.minZ;
+          if (!xOverlap || !zOverlap) continue;
+          if (stopY === null || otherStop > stopY) stopY = otherStop;
+        }
+      }
+
+      if (stopY !== null) {
+        const delta = stopY - groupMinY;
+        group.cubes.forEach(c => c.position.y += delta);
+        group.velocity.y = 0;
+      } else {
+        group.cubes.forEach(c => c.position.y += group.velocity.y);
+      }
+    }
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+// Interaction — drag & select letter groups
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+let dragGroup = null;
+let selectedGroup = null;
+let dragPlane = new THREE.Plane();
+let dragOffset = new THREE.Vector3();
+let intersectPoint = new THREE.Vector3();
+
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+  pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(allCubes);
+  const allDone = allCubes.every(c => c.userData.arrived);
+  if (!allDone) return;
+  if (hits.length > 0) {
+    const letterIdx = hits[0].object.userData.letterIdx;
+    selectedGroup = allCubes.filter(c => c.userData.letterIdx === letterIdx);
+    dragGroup = selectedGroup;
+    draggingGroup = letterGroups[letterIdx];
+    draggingGroup.velocity.set(0, 0, 0);
+    controls.enabled = false;
+    dragPlane.setFromNormalAndCoplanarPoint(
+      camera.getWorldDirection(new THREE.Vector3()).negate(),
+      dragGroup[0].position
+    );
+    raycaster.ray.intersectPlane(dragPlane, intersectPoint);
+    if (intersectPoint) dragOffset.copy(dragGroup[0].position).sub(intersectPoint);
+  } else {
+    selectedGroup = null;
+  }
+});
+
+renderer.domElement.addEventListener('pointermove', (e) => {
+  if (!dragGroup) return;
+  pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+  pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  if (raycaster.ray.intersectPlane(dragPlane, intersectPoint)) {
+    const delta = new THREE.Vector3().copy(intersectPoint).add(dragOffset).sub(dragGroup[0].position);
+    dragGroup.forEach(c => c.position.add(delta));
+  }
+});
+
+renderer.domElement.addEventListener('pointerup', () => {
+  dragGroup = null;
+  draggingGroup = null;
+  controls.enabled = true;
+});
+
+window.addEventListener('keydown', (e) => {
+  const step = 0.5;
+  const dir = new THREE.Vector3();
+  camera.getWorldDirection(dir);
+  if (e.key === 'w' || e.key === 'W') {
+    camera.position.addScaledVector(dir, step);
+    controls.update();
+  }
+  if (e.key === 's' || e.key === 'S') {
+    camera.position.addScaledVector(dir, -step);
+    controls.update();
+  }
+  if (e.key === 'g' || e.key === 'G') {
+    const allDone = allCubes.every(c => c.userData.arrived);
+    if (allDone) toggleGravity();
+  }
+  if (selectedGroup && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','q','Q','e','E'].includes(e.key)) {
+    e.preventDefault();
+    const center = new THREE.Vector3();
+    selectedGroup.forEach(c => center.add(c.position));
+    center.divideScalar(selectedGroup.length);
+    let axis = new THREE.Vector3(0, 1, 0);
+    let angle = 0.1;
+    if (e.key === 'ArrowLeft') { axis.set(0, 1, 0); angle = 0.1; }
+    if (e.key === 'ArrowRight') { axis.set(0, 1, 0); angle = -0.1; }
+    if (e.key === 'ArrowUp') { axis.set(1, 0, 0); angle = 0.1; }
+    if (e.key === 'ArrowDown') { axis.set(1, 0, 0); angle = -0.1; }
+    if (e.key === 'q' || e.key === 'Q') { axis.set(0, 0, 1); angle = 0.1; }
+    if (e.key === 'e' || e.key === 'E') { axis.set(0, 0, 1); angle = -0.1; }
+    selectedGroup.forEach(c => {
+      const offset = new THREE.Vector3().copy(c.position).sub(center);
+      offset.applyAxisAngle(axis, angle);
+      c.position.copy(center).add(offset);
+    });
+    controls.update();
+  }
+});
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+<button onclick="window.location.href='../codebase/index.html'" style="position:fixed;top:16px;right:16px;z-index:9999;font-family:'Press Start 2P',monospace;background:#222;color:#fff;border:2px solid #fff;padding:8px 12px;cursor:pointer;font-size:8px;line-height:1.4;box-shadow:4px 4px 0 rgba(0,0,0,0.3);">&#9664; TORNA ALLA HOME</button>
+</body>
+</html>
