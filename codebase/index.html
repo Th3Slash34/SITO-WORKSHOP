@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SITO — Raccolta Esercizi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Jersey+15&family=Jersey+20&family=Jersey+25&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; min-height: 100vh; }
+
+body {
+  font-family: 'Jersey 15', sans-serif;
+  background-color: #0a0202;
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.2) 2px,
+    rgba(0,0,0,0.2) 4px
+  );
+  color: #fff;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* ── Scanlines CRT overlay ── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.35) 2px,
+    rgba(0,0,0,0.35) 4px
+  );
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* ── Pixel particles ── */
+.particles {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.pixel {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: rgba(204,34,34,0.25);
+  image-rendering: pixelated;
+  animation: float linear infinite;
+}
+
+@keyframes float {
+  0%   { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+}
+
+.nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2.5rem;
+  background: rgba(5,2,2,0.88);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.nav-logo {
+  font-family: 'Jersey 25', sans-serif;
+  font-size: 1.6rem;
+  color: #cc2222;
+  letter-spacing: 0.05em;
+}
+
+.nav-links {
+  display: flex;
+  gap: 2rem;
+  list-style: none;
+}
+
+.nav-links a {
+  font-family: 'Jersey 15', sans-serif;
+  font-size: 1.1rem;
+  color: rgba(255,255,255,0.6);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.nav-links a:hover { color: #cc2222; }
+
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 6rem 2rem 4rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 30%, rgba(204,34,34,0.15) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.hero h1 {
+  font-family: 'Jersey 25', sans-serif;
+  font-size: clamp(3.5rem, 10vw, 7rem);
+  line-height: 1;
+  position: relative;
+  background: repeating-linear-gradient(
+    0deg,
+    #cc2222,
+    #cc2222 2px,
+    #7a1414 2px,
+    #7a1414 4px
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.hero .sottotitolo {
+  font-family: 'Jersey 20', sans-serif;
+  font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+  color: rgba(255,255,255,0.5);
+  margin-top: 0.6rem;
+  position: relative;
+}
+
+.hero .descrizione {
+  font-family: 'Jersey 15', sans-serif;
+  font-size: clamp(1rem, 1.5vw, 1.2rem);
+  color: rgba(255,255,255,0.35);
+  max-width: 560px;
+  margin-top: 1.2rem;
+  line-height: 1.6;
+  position: relative;
+}
+
+.section-title {
+  font-family: 'Jersey 25', sans-serif;
+  font-size: clamp(3.5rem, 10vw, 7rem);
+  text-align: center;
+  margin-bottom: 2rem;
+  letter-spacing: 0.1em;
+  position: relative;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(255,255,255,0.4),
+    rgba(255,255,255,0.4) 2px,
+    rgba(0,0,0,0.3) 2px,
+    rgba(0,0,0,0.3) 4px
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.exercises {
+  width: 100%;
+  padding: 0 3rem 5rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+}
+
+.card {
+  border-radius: 16px;
+  padding: 4rem 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+  text-decoration: none;
+  color: #fff;
+  position: relative;
+  min-height: 280px;
+  border: 1px solid rgba(255,255,255,0.08);
+  transition: transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94), box-shadow 0.35s ease;
+}
+
+.card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+}
+
+.card h2 {
+  font-family: 'Jersey 25', sans-serif;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  margin-bottom: 0.5rem;
+  position: relative;
+  z-index: 1;
+  background: repeating-linear-gradient(
+    0deg,
+    #fff,
+    #fff 2px,
+    rgba(0,0,0,0.3) 2px,
+    rgba(0,0,0,0.3) 4px
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.card p {
+  font-family: 'Jersey 15', sans-serif;
+  font-size: clamp(0.8rem, 1.2vw, 1rem);
+  opacity: 0.7;
+  position: relative;
+  z-index: 1;
+}
+
+.card-etichetta {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  font-family: 'Jersey 10', sans-serif;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  opacity: 0.4;
+}
+
+.card-disegnare  { background: linear-gradient(135deg, #C25A3C, #a0452a); }
+.card-tipografia { background: linear-gradient(135deg, #6B2D46, #4a1e30); }
+.card-texture    { background: linear-gradient(135deg, #6B7B8D, #4a5a6b); }
+.card-responsivo { background: linear-gradient(135deg, #8C7A6B, #6b5a4a); }
+.card-ricetta    { background: linear-gradient(135deg, #3d2a2a, #2a1a1a); }
+.card-ricetta h2 { -webkit-text-fill-color: #e8d5b7; color: #e8d5b7; }
+
+/* ── About ── */
+.section {
+  width: 100%;
+  padding: 5rem 3rem;
+  text-align: center;
+}
+
+.section-content {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.section h2 {
+  font-family: 'Jersey 25', sans-serif;
+  font-size: clamp(3.5rem, 10vw, 7rem);
+  margin-bottom: 1.5rem;
+  position: relative;
+  background: repeating-linear-gradient(
+    0deg,
+    #cc2222,
+    #cc2222 2px,
+    #7a1414 2px,
+    #7a1414 4px
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.section p {
+  font-family: 'Jersey 15', sans-serif;
+  font-size: clamp(1rem, 1.8vw, 1.3rem);
+  color: rgba(255,255,255,0.6);
+  line-height: 1.8;
+}
+
+.contatti-icons {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.contatti-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border: 2px solid rgba(204,34,34,0.3);
+  border-radius: 50%;
+  color: #cc2222;
+  transition: all 0.3s ease;
+}
+
+.contatti-icon:hover {
+  background: rgba(204,34,34,0.1);
+  border-color: #cc2222;
+  transform: translateY(-3px);
+}
+
+.contatti-link {
+  display: inline-block;
+  font-family: 'Jersey 20', sans-serif;
+  font-size: clamp(1.2rem, 2vw, 1.6rem);
+  color: #cc2222;
+  text-decoration: none;
+  border: 2px solid rgba(204,34,34,0.3);
+  padding: 0.8rem 2rem;
+  border-radius: 8px;
+  margin-top: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.contatti-link:hover {
+  background: rgba(204,34,34,0.1);
+  border-color: #cc2222;
+}
+
+/* ── Footer ── */
+footer {
+  text-align: center;
+  padding: 3rem 2rem 2rem;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.footer-brand {
+  font-family: 'Jersey 25', sans-serif;
+  font-size: 1.4rem;
+  color: rgba(255,255,255,0.3);
+  margin-bottom: 1rem;
+}
+
+.footer-links {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.footer-links a {
+  font-family: 'Jersey 15', sans-serif;
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.25);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.footer-links a:hover { color: #cc2222; }
+
+.footer-copy {
+  font-family: 'Jersey 10', sans-serif;
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.15);
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .grid { grid-template-columns: 1fr; }
+  .nav { padding: 0.8rem 1.2rem; }
+  .nav-links { gap: 1rem; }
+  .hero { min-height: 80vh; padding: 5rem 1.5rem 3rem; }
+  .exercises { padding: 0 1.2rem 3rem; }
+  .card { min-height: 160px; padding: 1.8rem 1rem; }
+}
+</style>
+</head>
+<body>
+
+  <div class="particles" id="particles"></div>
+
+  <script>
+  const colors = ['rgba(204,34,34,0.3)', 'rgba(204,34,34,0.2)', 'rgba(255,80,80,0.15)', 'rgba(150,20,20,0.25)'];
+  const sizes = [4, 6, 8, 10];
+  const p = document.getElementById('particles');
+  for (let i = 0; i < 60; i++) {
+    const el = document.createElement('div');
+    el.className = 'pixel';
+    el.style.left = Math.random() * 100 + '%';
+    el.style.width = sizes[Math.floor(Math.random() * sizes.length)] + 'px';
+    el.style.height = el.style.width;
+    el.style.background = colors[Math.floor(Math.random() * colors.length)];
+    el.style.animationDuration = (25 + Math.random() * 30) + 's';
+    el.style.animationDelay = (Math.random() * 30) + 's';
+    p.appendChild(el);
+  }
+
+  /* ── Cursor glow + sparks ── */
+  const glow = document.createElement('div');
+  glow.style.cssText = 'position:fixed;pointer-events:none;z-index:9999;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(204,34,34,0.6),rgba(204,34,34,0.25) 30%,rgba(204,34,34,0.08) 55%,transparent 75%);transform:translate(-50%,-50%)';
+  document.body.appendChild(glow);
+
+  document.addEventListener('mousemove', (e) => {
+    glow.style.left = e.clientX + 'px';
+    glow.style.top = e.clientY + 'px';
+
+    if (Math.random() > 0.7) {
+      const spark = document.createElement('div');
+      const size = 3 + Math.random() * 5;
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 20 + Math.random() * 40;
+      spark.style.cssText = `position:fixed;left:${e.clientX}px;top:${e.clientY}px;width:${size}px;height:${size}px;background:rgba(204,34,34,${0.3 + Math.random()*0.4});border-radius:50%;pointer-events:none;z-index:9999;transition:transform ${0.5 + Math.random()*0.5}s linear,opacity ${0.5 + Math.random()*0.5}s ease`;
+      document.body.appendChild(spark);
+      requestAnimationFrame(() => {
+        spark.style.transform = `translate(${Math.cos(angle)*dist}px,${Math.sin(angle)*dist}px) scale(0)`;
+        spark.style.opacity = '0';
+      });
+      setTimeout(() => spark.remove(), 1000);
+    }
+  });
+  </script>
+
+  <nav class="nav">
+    <div class="nav-logo">ROBERTO FRANCIPELLI</div>
+    <ul class="nav-links">
+      <li><a href="#about">About</a></li>
+      <li><a href="#esercizi">Esercizi</a></li>
+      <li><a href="#contatti">Contatti</a></li>
+    </ul>
+  </nav>
+
+  <section class="hero">
+    <h1>ROBERTO FRANCIPELLI</h1>
+    <p class="sottotitolo">WS Interaction Design &amp; AI</p>
+    <p class="descrizione">Una raccolta di esercizi di design digitale: hand tracking, visualizzazione sonora, ricette interattive, pattern procedurali e tipografia 3D.</p>
+  </section>
+
+  <section class="exercises" id="esercizi">
+    <h2 class="section-title">ESERCIZI</h2>
+    <div class="grid">
+
+      <a class="card card-disegnare" href="../DISEGNARE CON LE MANI/codebase/index.html">
+        <span class="card-etichetta">Jersey 15</span>
+        <h2>DISEGNARE<br>CON LE MANI</h2>
+        <p>Disegna con il movimento delle dita tramite hand tracking</p>
+      </a>
+
+      <a class="card card-tipografia" href="../TIPOGRAFIA CINETICA/index.html">
+        <span class="card-etichetta">Jersey 15</span>
+        <h2>TIPOGRAFIA<br>CINETICA</h2>
+        <p>Animazione 3D di cubetti a tema Minecraft</p>
+      </a>
+
+      <a class="card card-texture" href="../TEXTURE O PATTERN/index.html">
+        <span class="card-etichetta">Jersey 15</span>
+        <h2>TEXTURE<br>O PATTERN</h2>
+        <p>Genera pattern procedurali con connessioni casuali</p>
+      </a>
+
+      <a class="card card-responsivo" href="../RESPONSIVO AL MICROFONO/codebase/index.html">
+        <span class="card-etichetta">Jersey 15</span>
+        <h2>RESPONSIVO<br>AL MICROFONO</h2>
+        <p>Radio interattiva che reagisce alla tua voce</p>
+      </a>
+
+      <a class="card card-ricetta" href="../RICETTA PASTA CON IL NERO DI SEPPIA/index.html">
+        <span class="card-etichetta">Jersey 15</span>
+        <h2>RICETTA<br>PASTA</h2>
+        <p>Ricetta interattiva con dosi scalabili per ogni ospite</p>
+      </a>
+
+    </div>
+  </section>
+
+  <section class="section" id="about">
+    <div class="section-content">
+      <h2>ABOUT</h2>
+      <p>Questo sito raccoglie gli esercizi realizzati durante il workshop di Interaction Design &amp; AI. Ogni progetto esplora un diverso aspetto del design digitale: dall'interazione con il movimento delle mani alla visualizzazione sonora, dal display di una ricetta alla generazione di pattern e all'animazione 3D.</p>
+    </div>
+  </section>
+
+  <section class="section" id="contatti">
+    <div class="section-content">
+      <h2>CONTATTI</h2>
+      <p>Per informazioni sui progetti o per collaborazioni, contattami tramite i canali indicati.</p>
+      <div class="contatti-icons">
+        <a class="contatti-icon" href="https://instagram.com" target="_blank" rel="noopener" aria-label="Instagram">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+            <circle cx="12" cy="12" r="5"/>
+            <circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none"/>
+          </svg>
+        </a>
+        <a class="contatti-icon" href="mailto:roberto.francipelli@example.com" aria-label="Gmail">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2"/>
+            <path d="M2 4l10 8 10-8"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-brand">ROBERTO FRANCIPELLI</div>
+    <div class="footer-links">
+      <a href="#about">About</a>
+      <a href="#esercizi">Esercizi</a>
+      <a href="#contatti">Contatti</a>
+    </div>
+    <p class="footer-copy">Jersey 10 — Credits</p>
+  </footer>
+
+</body>
+</html>
