@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pasta al Nero di Seppia</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <section class="hero">
+    <div class="hero-content">
+      <h1>Pasta al Nero di Seppia</h1>
+      <p class="hero-subtitle">Un classico della tradizione marinara italiana</p>
+      <p class="hero-author">Chef Franco</p>
+    </div>
+  </section>
+
+  <header class="recipe-header">
+    <h1>Pasta al Nero di Seppia</h1>
+    <p class="author">Chef Franco</p>
+  </header>
+
+  <section class="servings-control">
+    <label for="servings-slider">Numero di commensali:</label>
+    <div class="servings-row">
+      <input type="range" id="servings-slider" min="1" max="20" value="2" step="1">
+      <span id="servings-display">2</span>
+    </div>
+  </section>
+
+  <section class="ingredients" id="ingredients-section">
+    <h2>Ingredienti</h2>
+    <div class="ingredients-grid" id="ingredients-grid">
+    </div>
+  </section>
+
+  <section class="instructions">
+    <h2>Procedimento</h2>
+    <ol id="instructions-list">
+    </ol>
+  </section>
+
+  <script>
+    const BASE_SERVINGS = 2;
+
+    const recipe = {
+      title: "Pasta al Nero di Seppia",
+      author: "Chef Franco",
+      ingredients: [
+        { id: "seppie", name: "Seppie", qty: 600, unit: "g", scalable: true, optional: false, substitution: "Aggiungi gamberetti o vongole per bilanciare." },
+        { id: "pomodoro", name: "Concentrato di pomodoro", qty: 30, unit: "g", scalable: true, optional: false, substitution: "Usa un pomodoro fresco maturo pelato." },
+        { id: "vino", name: "Vino bianco secco", qty: 60, unit: "ml", scalable: true, optional: false, substitution: "Sfuma con brodo vegetale e qualche goccia di limone." },
+        { id: "scalogno", name: "Scalogno", qty: 1, unit: "", scalable: true, optional: false, substitution: "Usa mezza cipolla dorata." },
+        { id: "aglio", name: "Aglio", qty: 1, unit: "spicchio", scalable: true, optional: false, substitution: "Usa 1/2 cucchiaino di aglio in polvere." },
+        { id: "pasta", name: "Pasta (spaghetti/linguine)", qty: 350, unit: "g", scalable: true, optional: false, substitution: "Allunga con zucchine tagliate a dadini." },
+        { id: "olio", name: "Olio extravergine di oliva", qty: null, unit: "q.b.", scalable: false, optional: false, substitution: null },
+        { id: "peperoncino", name: "Peperoncino", qty: 1, unit: "pezzetto", scalable: true, optional: true, substitution: "Usa un pizzico di peperoncino in polvere." },
+        { id: "sale", name: "Sale", qty: null, unit: "q.b.", scalable: false, optional: false, substitution: null },
+      ],
+      instructions: [
+        "Tritare finemente la cipolla e metterla in un tegame con il peperoncino intero, uno spicchio d'aglio e l'olio extravergine d'oliva.",
+        "Fare appassire la cipolla lentamente aggiungendo 10ml di acqua calda per evitare che bruci, cuocendo finché non diventa trasparente.",
+        "Nel frattempo, tagliare le seppie a strisce sottili e dividere i tentacoli in piccoli pezzi.",
+        "Aggiungere le seppie alla cipolla e rosolare a fuoco medio.",
+        "Quando le seppie cambiano colore, aggiungere qualche goccia di vino bianco e lasciare evaporare la parte alcolica.",
+        "Aggiungere il concentrato di pomodoro.",
+        "Prendere la vescica contenente il nero della seppia tra due dita e spremere delicatamente per far gocciolare il nero nel tegame, facendo attenzione a non schizzare.",
+        "Mescolare e aggiungere mezzo bicchiere di acqua calda.",
+        "Cuocere le seppie con il loro nero a fuoco basso e coperto per 20 minuti.",
+        "Assaggiare prima di aggiungere il sale \u2014 il nero della seppia \u00e8 naturalmente salato.",
+        "Lessare la pasta in abbondante acqua salata e scolarla al dente.",
+        "Mantecare la pasta in padella insieme al sugo delle seppie, emulsionando con un filo d'olio extravergine d'oliva e poca acqua di cottura se necessario."
+      ]
+    };
+
+    function getScaledQty(ingredient, servings) {
+      if (!ingredient.scalable || ingredient.qty === null) return null;
+      return Math.round((ingredient.qty / BASE_SERVINGS) * servings * 10) / 10;
+    }
+
+    function getStatus(ingredient, servings, available) {
+      if (!ingredient.scalable || ingredient.qty === null) return null;
+      const needed = getScaledQty(ingredient, servings);
+      if (available === null || available === undefined || available === '' || isNaN(available)) return null;
+      const ratio = available / needed;
+      if (ratio >= 0.8) return 'ok';
+      if (ratio >= 0.5) return 'warning';
+      return 'error';
+    }
+
+    let currentServings = 2;
+    let availabilities = {};
+    let includePeperoncino = true;
+
+    function initAvailabilities() {
+      recipe.ingredients.forEach(function(ing) {
+        if (ing.scalable && ing.qty !== null) {
+          availabilities[ing.id] = getScaledQty(ing, BASE_SERVINGS);
+        }
+      });
+    }
+
+    function updateCardStatus(ing) {
+      var card = document.querySelector('.ingredient-card[data-id="' + ing.id + '"]');
+      if (!card) return;
+
+      var scaledQty = getScaledQty(ing, currentServings);
+      var available = availabilities[ing.id] !== undefined ? availabilities[ing.id] : (scaledQty || '');
+      var status = getStatus(ing, currentServings, available);
+
+      var qtySpan = card.querySelector('.scaled-qty');
+      if (qtySpan) {
+        qtySpan.textContent = scaledQty !== null ? scaledQty + (ing.unit ? ' ' + ing.unit : '') : '';
+      }
+
+      var indicator = card.querySelector('.status-indicator');
+      if (!indicator) return;
+
+      indicator.className = 'status-indicator';
+      indicator.style.visibility = '';
+      indicator.onclick = null;
+
+      var existingTip = card.querySelector('.substitution-tip');
+      if (existingTip) existingTip.remove();
+
+      if (status === 'ok') {
+        indicator.className += ' status-ok';
+        indicator.innerHTML = '&#10003;';
+      } else if (status === 'warning') {
+        indicator.className += ' status-warning';
+        indicator.innerHTML = '&#9888;';
+        var tip = document.createElement('div');
+        tip.className = 'substitution-tip';
+        tip.id = 'tip-' + ing.id;
+        tip.textContent = ing.substitution;
+        card.appendChild(tip);
+        indicator.addEventListener('click', function() {
+          tip.classList.toggle('visible');
+        });
+      } else if (status === 'error') {
+        indicator.className += ' status-error';
+        indicator.innerHTML = '&#10007;';
+      } else {
+        indicator.style.visibility = 'hidden';
+        indicator.textContent = '-';
+      }
+    }
+
+    function renderIngredients() {
+      var grid = document.getElementById('ingredients-grid');
+      grid.innerHTML = '';
+      var hasCards = false;
+
+      recipe.ingredients.forEach(function(ing) {
+        if (ing.optional && !includePeperoncino) return;
+        hasCards = true;
+
+        var card = document.createElement('div');
+        card.className = 'ingredient-card';
+        card.dataset.id = ing.id;
+
+        var scaledQty = getScaledQty(ing, currentServings);
+        var available = availabilities[ing.id] !== undefined ? availabilities[ing.id] : (scaledQty || '');
+
+        var nameSpan = document.createElement('span');
+        nameSpan.className = 'name';
+        nameSpan.textContent = ing.name;
+        card.appendChild(nameSpan);
+
+        var qtySpan = document.createElement('span');
+        qtySpan.className = 'scaled-qty';
+        qtySpan.textContent = scaledQty !== null ? scaledQty + (ing.unit ? ' ' + ing.unit : '') : '';
+        card.appendChild(qtySpan);
+
+        if (ing.scalable) {
+          var input = document.createElement('input');
+          input.type = 'number';
+          input.className = 'availability-input';
+          input.id = 'avail-' + ing.id;
+          input.value = available === null || available === '' ? '' : available;
+          input.min = 0;
+          input.step = 'any';
+          input.dataset.id = ing.id;
+          card.appendChild(input);
+
+          var unitSpan = document.createElement('span');
+          unitSpan.className = 'unit-label';
+          unitSpan.textContent = ing.unit;
+          card.appendChild(unitSpan);
+
+          input.addEventListener('input', function(e) {
+            var val = e.target.value === '' ? '' : parseFloat(e.target.value);
+            availabilities[ing.id] = val;
+            updateCardStatus(ing);
+          });
+        } else {
+          var qbSpan = document.createElement('span');
+          qbSpan.className = 'qb-label';
+          qbSpan.textContent = 'q.b.';
+          card.appendChild(qbSpan);
+        }
+
+        var indicator = document.createElement('span');
+        indicator.className = 'status-indicator';
+        card.appendChild(indicator);
+
+        grid.appendChild(card);
+        updateCardStatus(ing);
+      });
+
+      if (!hasCards) {
+        var emptyMsg = document.createElement('p');
+        emptyMsg.style.cssText = 'color:#888;font-style:italic;';
+        emptyMsg.textContent = 'Nessun ingrediente da mostrare.';
+        grid.appendChild(emptyMsg);
+      }
+    }
+
+    function renderInstructions() {
+      var list = document.getElementById('instructions-list');
+      list.innerHTML = '';
+
+      recipe.instructions.forEach(function(text) {
+        var li = document.createElement('li');
+        li.textContent = text;
+        list.appendChild(li);
+      });
+    }
+
+    function renderAll() {
+      renderIngredients();
+      renderInstructions();
+      document.getElementById('servings-display').textContent = currentServings;
+    }
+
+    function setupUI() {
+      var slider = document.getElementById('servings-slider');
+      slider.addEventListener('input', function(e) {
+        currentServings = parseInt(e.target.value, 10);
+        renderAll();
+      });
+
+      var resetBtn = document.createElement('button');
+      resetBtn.className = 'reset-btn';
+      resetBtn.textContent = 'Reimposta disponibilit\u00e0';
+      resetBtn.addEventListener('click', function() {
+        initAvailabilities();
+        renderAll();
+      });
+      document.getElementById('ingredients-section').appendChild(resetBtn);
+
+      var checkbox = document.createElement('label');
+      checkbox.className = 'peperoncino-toggle';
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = true;
+      cb.addEventListener('change', function(e) {
+        includePeperoncino = e.target.checked;
+        renderAll();
+      });
+      checkbox.appendChild(cb);
+      checkbox.appendChild(document.createTextNode(' Includi peperoncino'));
+      document.getElementById('ingredients-section').insertBefore(checkbox, document.getElementById('ingredients-grid'));
+    }
+
+    initAvailabilities();
+    setupUI();
+    renderAll();
+  </script>
+<button onclick="window.location.href='../codebase/index.html'" style="position:fixed;top:16px;right:16px;z-index:9999;font-family:'Press Start 2P',monospace;background:#222;color:#fff;border:2px solid #fff;padding:8px 12px;cursor:pointer;font-size:8px;line-height:1.4;box-shadow:4px 4px 0 rgba(0,0,0,0.3);">&#9664; TORNA ALLA HOME</button>
+</body>
+</html>
