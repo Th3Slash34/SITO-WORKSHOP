@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MARIONETTA — Hand Tracking</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Jersey+15&family=Jersey+20&family=Jersey+25&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #111;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: system-ui, sans-serif;
+    }
+    #container {
+      position: relative;
+      width: 100%;
+      max-width: 1200px;
+      transform: scaleX(-1);
+      background: #f0f0f0;
+      border-radius: 12px;
+    }
+    #container.hide-video #video { opacity: 0; }
+    #video {
+      width: 100%;
+      display: block;
+      border-radius: 12px;
+    }
+    .layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    #draw-canvas { z-index: 1; }
+    #grid-canvas { z-index: 2; }
+    #overlay { z-index: 3; }
+    #toolbar {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      background: rgba(0,0,0,0.7);
+      padding: 6px;
+      border-radius: 24px;
+      backdrop-filter: blur(4px);
+    }
+    #toolbar button {
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      font-size: 18px;
+      cursor: pointer;
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      transition: 0.15s;
+    }
+    #toolbar button.active {
+      background: rgba(255,255,255,0.3);
+      box-shadow: 0 0 0 2px #ffd93d;
+    }
+    #status {
+      color: #aaa;
+      font-size: 12px;
+      padding: 8px 12px;
+      line-height: 40px;
+    }
+    #btn-reset-grid { font-size: 16px; }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <video id="video" playsinline></video>
+    <canvas id="draw-canvas" class="layer"></canvas>
+    <canvas id="overlay" class="layer"></canvas>
+    <canvas id="grid-canvas" class="layer"></canvas>
+  </div>
+  <div id="toolbar">
+    <button id="btn-import" title="Importa">📂</button>
+    <button id="btn-bg" title="Sfondo" class="active">🌐</button>
+    <input type="color" id="bg-color" value="#f0f0f0" title="Colore sfondo" style="width:30px;height:30px;padding:0;border:2px solid rgba(255,255,255,0.2);border-radius:50%;cursor:pointer;background:none">
+    <button id="btn-export" title="Esporta">💾</button>
+    <button id="btn-export-no-bg" title="Esporta senza sfondo">✨</button>
+    <button id="btn-anima" title="Anima">🎭</button>
+    <button id="btn-reset-grid" title="Reset griglia" style="display:none">🔄</button>
+    <span id="grid-controls" style="display:none;align-items:center;gap:3px;color:#fff;font-size:13px">
+      <span style="font-size:15px;line-height:28px">▦</span>
+      <button id="grid-rows-dec" style="width:26px;height:26px;font-size:13px">−</button>
+      <span id="grid-rows-label" style="min-width:16px;text-align:center">5</span>
+      <button id="grid-rows-inc" style="width:26px;height:26px;font-size:13px">+</button>
+      <span style="margin:0 1px">×</span>
+      <button id="grid-cols-dec" style="width:26px;height:26px;font-size:13px">−</button>
+      <span id="grid-cols-label" style="min-width:16px;text-align:center">5</span>
+      <button id="grid-cols-inc" style="width:26px;height:26px;font-size:13px">+</button>
+    </span>
+    <span id="status">Caricamento...</span>
+  </div>
+
+  <input type="file" id="file-input" accept="image/*" style="display:none">
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/hand-pose-detection"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
+
+  <script>
+    const video = document.getElementById('video');
+    const overlay = document.getElementById('overlay');
+    const ctx = overlay.getContext('2d');
+    const drawCanvas = document.getElementById('draw-canvas');
+    const drawCtx = drawCanvas.getContext('2d');
+    const statusEl = document.getElementById('status');
+
+    const PINCH_THRESHOLD = 35;
+    let gridRows = 5;
+    let gridCols = 5;
+    const NODE_GRAB_RADIUS = 50;
+    const DECAY_RADIUS = 3;
+
+    let animaMode = false;
+    let animaSource = null;
+    let gridNodes = [];
+    let grabbedNodes = {};
+
+
+    function texturedTriangle(ctx, img, x0,y0, x1,y1, x2,y2, sx0,sy0, sx1,sy1, sx2,sy2) {
+      ctx.save();
+      const cx = (x0 + x1 + x2) / 3, cy = (y0 + y1 + y2) / 3;
+      const ep = 0.5;
+      const d0 = Math.hypot(x0 - cx, y0 - cy) || 1;
+      const d1 = Math.hypot(x1 - cx, y1 - cy) || 1;
+      const d2 = Math.hypot(x2 - cx, y2 - cy) || 1;
+      const ex0 = cx + (x0 - cx) * (d0 + ep) / d0;
+      const ey0 = cy + (y0 - cy) * (d0 + ep) / d0;
+      const ex1 = cx + (x1 - cx) * (d1 + ep) / d1;
+      const ey1 = cy + (y1 - cy) * (d1 + ep) / d1;
+      const ex2 = cx + (x2 - cx) * (d2 + ep) / d2;
+      const ey2 = cy + (y2 - cy) * (d2 + ep) / d2;
+      ctx.beginPath();
+      ctx.moveTo(ex0, ey0);
+      ctx.lineTo(ex1, ey1);
+      ctx.lineTo(ex2, ey2);
+      ctx.closePath();
+      ctx.clip();
+
+      const dx = sx1 - sx0, dy = sy1 - sy0;
+      const dx2 = sx2 - sx0, dy2 = sy2 - sy0;
+      const D = dx * dy2 - dy * dx2;
+      if (Math.abs(D) < 1e-6) { ctx.restore(); return; }
+
+      const a = ((x1 - x0) * dy2 - (x2 - x0) * dy) / D;
+      const b = ((y1 - y0) * dy2 - (y2 - y0) * dy) / D;
+      const c = ((x2 - x0) * dx - (x1 - x0) * dx2) / D;
+      const d = ((y2 - y0) * dx - (y1 - y0) * dx2) / D;
+      const e = x0 - a * sx0 - c * sy0;
+      const f = y0 - b * sx0 - d * sy0;
+
+      ctx.setTransform(a, b, c, d, e, f);
+      ctx.drawImage(img, 0, 0);
+      ctx.restore();
+    }
+
+    function renderDeformedGrid(ctx, img) {
+      if (!gridNodes.length) return;
+      for (let r = 0; r < gridRows - 1; r++) {
+        for (let c = 0; c < gridCols - 1; c++) {
+          const n00 = gridNodes[r][c];
+          const n01 = gridNodes[r][c+1];
+          const n10 = gridNodes[r+1][c];
+          const n11 = gridNodes[r+1][c+1];
+
+          texturedTriangle(ctx, img,
+            n00.x, n00.y, n01.x, n01.y, n10.x, n10.y,
+            n00.ox, n00.oy, n01.ox, n01.oy, n10.ox, n10.oy
+          );
+          texturedTriangle(ctx, img,
+            n01.x, n01.y, n10.x, n10.y, n11.x, n11.y,
+            n01.ox, n01.oy, n10.ox, n10.oy, n11.ox, n11.oy
+          );
+        }
+      }
+    }
+
+    const HAND_CONNECTIONS = [
+      [0, 1], [0, 5], [0, 17],
+      [1, 2], [2, 3], [3, 4],
+      [5, 6], [6, 7], [7, 8],
+      [9, 10], [10, 11], [11, 12],
+      [13, 14], [14, 15], [15, 16],
+      [17, 18], [18, 19], [19, 20],
+      [5, 9], [9, 13], [13, 17]
+    ];
+
+    const FINGER_COLORS = {
+      0: '#ffffff',
+      1: '#ff6b6b', 2: '#ff6b6b', 3: '#ff6b6b', 4: '#ff6b6b',
+      5: '#ffd93d', 6: '#ffd93d', 7: '#ffd93d', 8: '#ffd93d',
+      9: '#6bcb77', 10: '#6bcb77', 11: '#6bcb77', 12: '#6bcb77',
+      13: '#4d96ff', 14: '#4d96ff', 15: '#4d96ff', 16: '#4d96ff',
+      17: '#c084fc', 18: '#c084fc', 19: '#c084fc', 20: '#c084fc',
+    };
+
+    function drawHand(hand, color) {
+      const kp = hand.keypoints;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+
+      for (const [i, j] of HAND_CONNECTIONS) {
+        ctx.beginPath();
+        ctx.moveTo(kp[i].x, kp[i].y);
+        ctx.lineTo(kp[j].x, kp[j].y);
+        ctx.stroke();
+      }
+
+      for (let i = 0; i < kp.length; i++) {
+        const { x, y } = kp[i];
+        const baseColor = FINGER_COLORS[i];
+        if (i === 4 || i === 8) {
+          ctx.beginPath();
+          ctx.arc(x, y, 14, 0, 2 * Math.PI);
+          ctx.fillStyle = baseColor + '33';
+          ctx.fill();
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, 2 * Math.PI);
+        ctx.fillStyle = baseColor;
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+
+    function initGrid(w, h) {
+      gridNodes = [];
+      const marginX = 0;
+      const marginY = 0;
+      const cellW = (w - 2 * marginX) / (gridCols - 1);
+      const cellH = (h - 2 * marginY) / (gridRows - 1);
+      for (let r = 0; r < gridRows; r++) {
+        gridNodes[r] = [];
+        for (let c = 0; c < gridCols; c++) {
+          const ox = marginX + c * cellW;
+          const oy = marginY + r * cellH;
+          gridNodes[r][c] = { ox, oy, x: ox, y: oy };
+        }
+      }
+    }
+
+    function applyNodeDrag(row, col, dx, dy) {
+      if (!gridNodes[row]) return;
+      gridNodes[row][col].x += dx;
+      gridNodes[row][col].y += dy;
+      for (let r = 0; r < gridRows; r++) {
+        for (let c = 0; c < gridCols; c++) {
+          if (r === row && c === col) continue;
+          const dist = Math.hypot(r - row, c - col);
+          if (dist > DECAY_RADIUS) continue;
+          const weight = 1 / (dist * dist + 0.1);
+          gridNodes[r][c].x += dx * weight;
+          gridNodes[r][c].y += dy * weight;
+        }
+      }
+    }
+
+    function enterAnima() {
+      const w = drawCanvas.width;
+      const h = drawCanvas.height;
+      if (!w || !h) return;
+
+      animaSource = document.createElement('canvas');
+      animaSource.width = w;
+      animaSource.height = h;
+      animaSource.getContext('2d').drawImage(drawCanvas, 0, 0);
+
+      const gc = document.getElementById('grid-canvas');
+      gc.width = w;
+      gc.height = h;
+      initGrid(w, h);
+      animaMode = true;
+      grabbedNodes = {};
+      document.getElementById('btn-reset-grid').style.display = '';
+      document.getElementById('grid-controls').style.display = 'flex';
+      document.getElementById('btn-anima').classList.add('active');
+      statusEl.textContent = 'Anima: attiva — pizzica un nodo';
+    }
+
+    function exitAnima() {
+      if (!animaMode) return;
+      animaMode = false;
+      animaSource = null;
+
+      const gc = document.getElementById('grid-canvas');
+      const gctx = gc.getContext('2d');
+      gctx.clearRect(0, 0, gc.width, gc.height);
+
+      gridNodes = [];
+      document.getElementById('btn-reset-grid').style.display = 'none';
+      document.getElementById('grid-controls').style.display = 'none';
+      document.getElementById('btn-anima').classList.remove('active');
+      statusEl.textContent = 'Pronto';
+    }
+
+    function resetGrid() {
+      if (!animaMode || !gridNodes.length) return;
+      for (let r = 0; r < gridRows; r++) {
+        for (let c = 0; c < gridCols; c++) {
+          const n = gridNodes[r][c];
+          n.x = n.ox;
+          n.y = n.oy;
+        }
+      }
+      grabbedNodes = {};
+    }
+
+    async function setupCamera() {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
+      });
+      video.srcObject = stream;
+      await video.play();
+
+    }
+
+    async function main() {
+      try {
+        await setupCamera();
+        statusEl.textContent = 'Caricamento modello...';
+
+        const model = handPoseDetection.SupportedModels.MediaPipeHands;
+        const detector = await handPoseDetection.createDetector(model, {
+          runtime: 'mediapipe',
+          solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/hands',
+          modelType: 'full',
+          maxHands: 2
+        });
+
+        const fileInput = document.getElementById('file-input');
+        document.getElementById('btn-import').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const img = new Image();
+          img.onload = () => {
+            const w = drawCanvas.width, h = drawCanvas.height;
+            const s = Math.min(w / img.width, h / img.height);
+            const dw = img.width * s, dh = img.height * s;
+            const dx = (w - dw) / 2, dy = (h - dh) / 2;
+            drawCtx.clearRect(0, 0, w, h);
+            drawCtx.save();
+            drawCtx.scale(-1, 1);
+            drawCtx.translate(-w, 0);
+            drawCtx.drawImage(img, dx, dy, dw, dh);
+            drawCtx.restore();
+            statusEl.textContent = 'Immagine importata';
+            fileInput.value = '';
+          };
+          img.src = URL.createObjectURL(file);
+        });
+
+        let bgColor = '#f0f0f0';
+        const container = document.getElementById('container');
+        document.getElementById('btn-bg').addEventListener('click', () => {
+          container.classList.toggle('hide-video');
+          document.getElementById('btn-bg').classList.toggle('active');
+        });
+        document.getElementById('bg-color').addEventListener('input', (e) => {
+          bgColor = e.target.value;
+          container.style.background = bgColor;
+        });
+
+        function exportImage(withBg) {
+          const w = drawCanvas.width, h = drawCanvas.height;
+          if (!w || !h) return;
+          const c = document.createElement('canvas');
+          c.width = w; c.height = h;
+          const tmp = c.getContext('2d');
+          const hideBg = container.classList.contains('hide-video');
+          if (withBg && hideBg) {
+            tmp.fillStyle = bgColor;
+            tmp.fillRect(0, 0, w, h);
+          } else if (withBg) {
+            tmp.save();
+            tmp.scale(-1, 1);
+            tmp.translate(-w, 0);
+            tmp.drawImage(video, 0, 0);
+            tmp.restore();
+          }
+          tmp.save();
+          tmp.scale(-1, 1);
+          tmp.translate(-w, 0);
+          tmp.drawImage(drawCanvas, 0, 0);
+          tmp.restore();
+          const a = document.createElement('a');
+          a.download = withBg ? 'marionetta.png' : 'marionetta_transparente.png';
+          a.href = c.toDataURL();
+          a.click();
+        }
+        document.getElementById('btn-export').addEventListener('click', () => exportImage(true));
+        document.getElementById('btn-export-no-bg').addEventListener('click', () => exportImage(false));
+
+        document.getElementById('btn-anima').addEventListener('click', () => {
+          if (animaMode) {
+            exitAnima();
+          } else {
+            enterAnima();
+          }
+        });
+
+        document.getElementById('btn-reset-grid').addEventListener('click', resetGrid);
+
+        const decRow = () => { if (gridRows > 2) { gridRows--; document.getElementById('grid-rows-label').textContent = gridRows; if (animaMode) { initGrid(drawCanvas.width, drawCanvas.height); } } };
+        const incRow = () => { if (gridRows < 20) { gridRows++; document.getElementById('grid-rows-label').textContent = gridRows; if (animaMode) { initGrid(drawCanvas.width, drawCanvas.height); } } };
+        const decCol = () => { if (gridCols > 2) { gridCols--; document.getElementById('grid-cols-label').textContent = gridCols; if (animaMode) { initGrid(drawCanvas.width, drawCanvas.height); } } };
+        const incCol = () => { if (gridCols < 20) { gridCols++; document.getElementById('grid-cols-label').textContent = gridCols; if (animaMode) { initGrid(drawCanvas.width, drawCanvas.height); } } };
+        document.getElementById('grid-rows-dec').addEventListener('click', decRow);
+        document.getElementById('grid-rows-inc').addEventListener('click', incRow);
+        document.getElementById('grid-cols-dec').addEventListener('click', decCol);
+        document.getElementById('grid-cols-inc').addEventListener('click', incCol);
+
+        statusEl.textContent = 'Tracking attivo';
+
+        let canvasesReady = false;
+
+        async function detect() {
+          if (!video.videoWidth) return requestAnimationFrame(detect);
+
+          if (!canvasesReady) {
+            overlay.width = video.videoWidth;
+            overlay.height = video.videoHeight;
+            drawCanvas.width = video.videoWidth;
+            drawCanvas.height = video.videoHeight;
+            canvasesReady = true;
+          }
+
+          const hands = await detector.estimateHands(video);
+
+          ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+          if (hands.length === 0) {
+            statusEl.textContent = animaMode ? 'Anima: attiva — nessuna mano rilevata' : 'Nessuna mano rilevata';
+            grabbedNodes = {};
+          } else {
+            statusEl.textContent = animaMode ? `Anima: attiva (${hands.length})` : `Mani: ${hands.length}`;
+          }
+
+          let pinching = false;
+          const handPinching = {};
+
+          for (const hand of hands) {
+            const color = hand.handedness === 'Right' ? '#4d96ff' : '#6bcb77';
+            drawHand(hand, color);
+
+            const kp = hand.keypoints;
+            const thumb = kp[4];
+            const index = kp[8];
+            const dx = thumb.x - index.x;
+            const dy = thumb.y - index.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < PINCH_THRESHOLD) {
+              pinching = true;
+              const mx = (thumb.x + index.x) / 2;
+              const my = (thumb.y + index.y) / 2;
+
+              if (animaMode) {
+                handPinching[hand.handedness] = true;
+                if (!grabbedNodes[hand.handedness]) {
+                  const grabbedSet = new Set(Object.values(grabbedNodes).map(n => `${n.row},${n.col}`));
+                  let minDist = Infinity;
+                  let best = null;
+                  for (let r = 0; r < gridRows; r++) {
+                    for (let c = 0; c < gridCols; c++) {
+                      if (grabbedSet.has(`${r},${c}`)) continue;
+                      const n = gridNodes[r][c];
+                      const d = Math.hypot(mx - n.x, my - n.y);
+                      if (d < minDist && d < NODE_GRAB_RADIUS) {
+                        minDist = d;
+                        best = { row: r, col: c };
+                      }
+                    }
+                  }
+                  if (best) grabbedNodes[hand.handedness] = best;
+                }
+                if (grabbedNodes[hand.handedness]) {
+                  const gn = grabbedNodes[hand.handedness];
+                  const n = gridNodes[gn.row][gn.col];
+                  const dx = mx - n.x;
+                  const dy = my - n.y;
+                  applyNodeDrag(gn.row, gn.col, dx, dy);
+                }
+              }
+            }
+          }
+
+          if (animaMode && animaSource) {
+            drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+            renderDeformedGrid(drawCtx, animaSource);
+            const gc = document.getElementById('grid-canvas');
+            const gctx = gc.getContext('2d');
+            gctx.clearRect(0, 0, gc.width, gc.height);
+            for (let r = 0; r < gridRows; r++) {
+              for (let c = 0; c < gridCols; c++) {
+                const n = gridNodes[r][c];
+                gctx.beginPath();
+                gctx.arc(n.x, n.y, 6, 0, 2 * Math.PI);
+                const isGrabbed = Object.values(grabbedNodes).some(gn => gn.row === r && gn.col === c);
+                gctx.fillStyle = isGrabbed ? '#ffd93d' : 'rgba(255,255,255,0.85)';
+                gctx.fill();
+                gctx.strokeStyle = 'rgba(0,0,0,0.5)';
+                gctx.lineWidth = 1.5;
+                gctx.stroke();
+              }
+            }
+          }
+
+          if (animaMode) {
+            for (const h of Object.keys(grabbedNodes)) {
+              if (!handPinching[h]) delete grabbedNodes[h];
+            }
+          }
+
+          requestAnimationFrame(detect);
+        }
+
+        detect();
+      } catch (err) {
+        statusEl.textContent = 'Errore: ' + err.message;
+        console.error(err);
+      }
+    }
+
+    main();
+  </script>
+<button onclick="window.location.href='../../codebase/index.html'" style="position:fixed;top:16px;left:16px;z-index:9999;font-family:'Jersey 15',sans-serif;background:#111;color:#fff;border:2px solid rgba(255,255,255,0.15);padding:12px 22px;cursor:pointer;font-size:1.1rem;transition:all 0.3s ease;" onmouseover="this.style.background='#000'" onmouseout="this.style.background='#111'">&#9664; TORNA ALLA HOME</button>
+</body>
+</html>
