@@ -30,18 +30,6 @@
     opacity: 0;
     transition: opacity 0.05s;
   }
-  #gravity-hint {
-    position: fixed;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-family: 'Courier New', monospace;
-    font-size: 11px;
-    color: rgba(255,255,255,0.2);
-    letter-spacing: 2px;
-    z-index: 10;
-    pointer-events: none;
-  }
   #controls {
     position: fixed;
     bottom: 60px;
@@ -49,7 +37,7 @@
     transform: translateX(-50%);
     font-family: 'Courier New', monospace;
     font-size: 11px;
-    color: rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.7);
     text-align: center;
     line-height: 1.8;
     z-index: 10;
@@ -63,12 +51,12 @@
 <body>
 <div id="title">MINECRAFT — CUBETTI 3D</div>
 <div id="flicker"></div>
-<div id="gravity-hint">PREMI G PER ATTIVARE/DISATTIVARE LA GRAVITÀ</div>
 <div id="controls">
   WASD — MUOVI CAMERA<br>
   CLICK + TRASCINA — SPOSTA LETTERA<br>
   FRECCE — RUOTA LETTERA<br>
-  Q/E — RUOTA PROFONDITÀ
+  Q/E — RUOTA PROFONDITÀ<br>
+  G — ATTIVA/DISATTIVA GRAVITÀ
 </div>
 <script type="importmap">
 {
@@ -471,7 +459,6 @@ function triggerFlicker() {
 
 function toggleGravity() {
   gravityEnabled = !gravityEnabled;
-  document.getElementById('gravity-hint').style.display = 'none';
   if (gravityEnabled) {
     triggerFlicker();
   }
