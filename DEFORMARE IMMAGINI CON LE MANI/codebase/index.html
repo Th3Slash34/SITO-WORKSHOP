@@ -76,9 +76,34 @@
       line-height: 40px;
     }
     #btn-reset-grid { font-size: 16px; }
+    #start-overlay {
+      position: fixed; inset: 0; z-index: 9998;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: #111; color: #fff; cursor: pointer;
+      font-family: 'Jersey 20', sans-serif;
+    }
+    #start-overlay h1 {
+      font-family: 'Jersey 25', sans-serif; font-size: 2.5rem;
+      color: #cc2222; margin-bottom: 0.5rem;
+    }
+    #start-overlay p {
+      font-size: 1.1rem; color: rgba(255,255,255,0.5); margin-bottom: 2rem;
+    }
+    #start-btn {
+      font-family: 'Jersey 20', sans-serif; font-size: 1.3rem;
+      background: #cc2222; color: #fff; border: none;
+      padding: 0.8rem 2.5rem; border-radius: 8px; cursor: pointer;
+      transition: background 0.2s;
+    }
+    #start-btn:hover { background: #aa1111; }
   </style>
 </head>
 <body>
+  <div id="start-overlay">
+    <h1>DEFORMA IMMAGINI</h1>
+    <p>Hand tracking &mdash; richiede la fotocamera</p>
+    <button id="start-btn">ATTIVA FOTOCAMERA</button>
+  </div>
   <div id="container">
     <video id="video" playsinline></video>
     <canvas id="draw-canvas" class="layer"></canvas>
@@ -543,7 +568,10 @@
       }
     }
 
-    main();
+    document.getElementById('start-btn').addEventListener('click', () => {
+      document.getElementById('start-overlay').style.display = 'none';
+      main();
+    });
   </script>
 <button onclick="window.location.href='../../codebase/index.html'" style="position:fixed;top:16px;left:16px;z-index:9999;font-family:'Jersey 15',sans-serif;background:#111;color:#fff;border:2px solid rgba(255,255,255,0.15);padding:12px 22px;cursor:pointer;font-size:1.1rem;transition:all 0.3s ease;" onmouseover="this.style.background='#000'" onmouseout="this.style.background='#111'">&#9664; TORNA ALLA HOME</button>
 </body>
