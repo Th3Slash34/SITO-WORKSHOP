@@ -42,12 +42,34 @@
     z-index: 10;
     pointer-events: none;
   }
+  #controls {
+    position: fixed;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: rgba(255,255,255,0.2);
+    text-align: center;
+    line-height: 1.8;
+    z-index: 10;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1s;
+  }
+  #controls.show { opacity: 1; }
 </style>
 </head>
 <body>
 <div id="title">MINECRAFT — CUBETTI 3D</div>
 <div id="flicker"></div>
 <div id="gravity-hint">PREMI G PER ATTIVARE/DISATTIVARE LA GRAVITÀ</div>
+<div id="controls">
+  WASD — MUOVI CAMERA<br>
+  CLICK + TRASCINA — SPOSTA LETTERA<br>
+  FRECCE — RUOTA LETTERA<br>
+  Q/E — RUOTA PROFONDITÀ
+</div>
 <script type="importmap">
 {
   "imports": {
@@ -542,6 +564,10 @@ function animate(time) {
     }
   }
 
+  if (allCubes.length > 0 && allCubes.every(c => c.userData.arrived)) {
+    document.getElementById('controls').classList.add('show');
+  }
+
   controls.update();
   renderer.render(scene, camera);
 }
@@ -599,7 +625,7 @@ renderer.domElement.addEventListener('pointerup', () => {
 });
 
 window.addEventListener('keydown', (e) => {
-  const step = 0.5;
+  const step = 1.5;
   const dir = new THREE.Vector3();
   camera.getWorldDirection(dir);
   if (e.key === 'w' || e.key === 'W') {
