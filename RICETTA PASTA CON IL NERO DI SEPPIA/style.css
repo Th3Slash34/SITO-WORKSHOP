@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Jersey+10&family=Jersey+15&family=Jersey+20&family=Jersey+25&display=swap');
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -7,32 +7,43 @@
 }
 
 :root {
-  --bg: #f5f0eb;
-  --text: #1a1a1a;
-  --accent: #d97706;
+  --bg: #0a0202;
+  --text: #ffffff;
+  --accent: #cc2222;
+  --accent-dark: #7a1414;
   --success: #16a34a;
   --warning: #ea580c;
   --error: #dc2626;
-  --card-bg: #ffffff;
-  --border: #e5e0db;
+  --card-bg: #1a0a0a;
+  --card-border: rgba(255,255,255,0.08);
+  --card-gradient: linear-gradient(135deg, #3d2a2a, #2a1a1a);
+  --text-secondary: rgba(255,255,255,0.6);
+  --text-muted: rgba(255,255,255,0.35);
 }
 
 body {
-  font-family: "Bricolage Grotesque", sans-serif;
-  font-optical-sizing: auto;
-  font-weight: 400;
-  font-style: normal;
-  font-variation-settings: "wdth" 100;
+  font-family: "Jersey 15", sans-serif;
   background: var(--bg);
   color: var(--text);
-  line-height: 1.6;
+  font-size: 1.25rem;
+  line-height: 1.7;
   padding: 2rem 1rem;
   max-width: 800px;
   margin: 0 auto;
+  position: relative;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.35) 2px, rgba(0,0,0,0.35) 4px);
+  pointer-events: none;
+  z-index: 9998;
 }
 
 .hero {
-  background: linear-gradient(135deg, #0d0d0d 0%, #1a1a2e 40%, #16213e 100%);
+  background: linear-gradient(135deg, #0d0d0d 0%, #2a0a0a 40%, #1a0505 100%);
   color: #fff;
   text-align: center;
   padding: 4rem 1rem;
@@ -46,7 +57,7 @@ body {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 30% 50%, rgba(217, 119, 6, 0.08) 0%, transparent 60%);
+  background: radial-gradient(ellipse at 30% 50%, rgba(204, 34, 34, 0.08) 0%, transparent 60%);
   pointer-events: none;
 }
 
@@ -57,22 +68,27 @@ body {
 }
 
 .hero-content h1 {
-  font-size: 2.8rem;
-  font-weight: 700;
+  font-family: "Jersey 25", sans-serif;
+  font-size: clamp(3.5rem, 10vw, 5rem);
+  background: repeating-linear-gradient(0deg, #cc2222, #cc2222 2px, #7a1414 2px, #7a1414 4px);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
   margin-bottom: 0.5rem;
-  letter-spacing: -0.02em;
 }
 
 .hero-subtitle {
-  font-size: 1.1rem;
-  color: rgba(255, 255, 255, 0.7);
+  font-family: "Jersey 20", sans-serif;
+  font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+  color: var(--text-secondary);
   margin-bottom: 0.5rem;
 }
 
 .hero-author {
+  font-family: "Jersey 15", sans-serif;
   font-size: 0.9rem;
   color: var(--accent);
-  font-style: italic;
 }
 
 .recipe-header {
@@ -81,16 +97,18 @@ body {
 
 .servings-control {
   background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
   padding: 1.5rem;
   margin-bottom: 2rem;
 }
 
 .servings-control label {
-  font-weight: 600;
+  font-family: "Jersey 20", sans-serif;
+  font-size: 1.1rem;
   display: block;
   margin-bottom: 0.75rem;
+  color: var(--text-secondary);
 }
 
 .servings-row {
@@ -105,8 +123,8 @@ body {
 }
 
 #servings-display {
+  font-family: "Jersey 25", sans-serif;
   font-size: 1.5rem;
-  font-weight: 700;
   min-width: 2.5rem;
   text-align: center;
   color: var(--accent);
@@ -117,30 +135,44 @@ body {
 }
 
 .ingredients h2, .instructions h2 {
-  font-size: 1.3rem;
+  font-family: "Jersey 25", sans-serif;
+  font-size: 2.2rem;
   margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid var(--accent);
+  background: repeating-linear-gradient(0deg, #cc2222, #cc2222 2px, #7a1414 2px, #7a1414 4px);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
 .ingredient-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  background: var(--card-gradient);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
   padding: 1rem;
   display: flex;
   align-items: center;
   gap: 1rem;
   margin-bottom: 0.5rem;
+  transition: transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94), box-shadow 0.35s ease;
+}
+
+.ingredient-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.4);
 }
 
 .ingredient-card .name {
   flex: 1;
-  font-weight: 500;
+  font-family: "Jersey 15", sans-serif;
+  font-size: 1.4rem;
 }
 
 .ingredient-card .scaled-qty {
-  color: #666;
+  color: var(--text-secondary);
+  font-family: "Jersey 15", sans-serif;
   font-size: 0.9rem;
   min-width: 5rem;
   text-align: right;
@@ -149,16 +181,27 @@ body {
 .ingredient-card .availability-input {
   width: 70px;
   padding: 0.3rem 0.5rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  font-family: "Jersey 15", sans-serif;
   font-size: 0.9rem;
   text-align: center;
+  color: #fff;
+}
+
+.ingredient-card .availability-input:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 
 .ingredient-card .unit-label {
-  font-size: 0.85rem;
-  color: #888;
+  font-family: "Jersey 10", sans-serif;
+  font-size: 0.7rem;
+  color: var(--text-muted);
   min-width: 2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
 }
 
 .status-indicator {
@@ -173,19 +216,20 @@ body {
   flex-shrink: 0;
 }
 
-.status-ok { background: #dcfce7; color: var(--success); }
-.status-warning { background: #ffedd5; color: var(--warning); cursor: pointer; }
-.status-error { background: #fee2e2; color: var(--error); }
+.status-ok { background: rgba(22, 163, 74, 0.2); color: var(--success); }
+.status-warning { background: rgba(234, 88, 12, 0.2); color: var(--warning); cursor: pointer; }
+.status-error { background: rgba(220, 38, 38, 0.2); color: var(--error); }
 
 .substitution-tip {
   display: none;
-  background: #fffbeb;
-  border: 1px solid #fde68a;
+  background: rgba(0,0,0,0.5);
+  border: 1px solid rgba(204, 34, 34, 0.3);
   border-radius: 8px;
   padding: 0.75rem 1rem;
   margin-top: 0.25rem;
+  font-family: "Jersey 15", sans-serif;
   font-size: 0.85rem;
-  color: #92400e;
+  color: rgba(255,255,255,0.7);
   grid-column: 1 / -1;
 }
 
@@ -194,9 +238,11 @@ body {
 }
 
 .qb-label {
-  color: #888;
-  font-style: italic;
-  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-family: "Jersey 10", sans-serif;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
 }
 
 .instructions ol {
@@ -206,22 +252,27 @@ body {
 .instructions li {
   margin-bottom: 0.75rem;
   line-height: 1.7;
+  font-size: 1.25rem;
+  color: rgba(255,255,255,0.8);
 }
 
 .reset-btn {
   display: inline-block;
   margin-top: 1rem;
   padding: 0.5rem 1.2rem;
-  background: var(--accent);
-  color: #fff;
-  border: none;
+  background: transparent;
+  color: var(--accent);
+  border: 2px solid rgba(204,34,34,0.3);
   border-radius: 8px;
-  font-size: 0.9rem;
+  font-family: "Jersey 20", sans-serif;
+  font-size: 1.1rem;
   cursor: pointer;
+  transition: all 0.3s ease;
 }
 
 .reset-btn:hover {
-  opacity: 0.9;
+  background: rgba(204,34,34,0.1);
+  border-color: var(--accent);
 }
 
 .peperoncino-toggle {
@@ -229,8 +280,37 @@ body {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 1rem;
+  font-family: "Jersey 15", sans-serif;
   font-size: 0.9rem;
   cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.peperoncino-toggle input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+
+.particles {
+  position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0;
+}
+.pixel {
+  position: absolute; width: 6px; height: 6px;
+  background: rgba(204,34,34,0.25); image-rendering: pixelated;
+  animation: float linear infinite;
+}
+@keyframes float {
+  0%   { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+}
+
+#cursor-glow {
+  position: fixed; top: 0; left: 0; width: 180px; height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(204,34,34,0.12), rgba(204,34,34,0.04) 30%, transparent 60%);
+  pointer-events: none; z-index: 9999;
+  transition: transform 0.05s ease;
 }
 
 @media (max-width: 600px) {

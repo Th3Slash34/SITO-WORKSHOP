@@ -4,9 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pasta al Nero di Seppia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Jersey+15&family=Jersey+20&family=Jersey+25&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div class="particles" id="particles"></div>
+  <div id="cursor-glow"></div>
   <section class="hero">
     <div class="hero-content">
       <h1>Pasta al Nero di Seppia</h1>
@@ -267,6 +272,31 @@
     setupUI();
     renderAll();
   </script>
-<button onclick="window.location.href='../codebase/index.html'" style="position:fixed;top:16px;right:16px;z-index:9999;font-family:'Press Start 2P',monospace;background:#222;color:#fff;border:2px solid #fff;padding:8px 12px;cursor:pointer;font-size:8px;line-height:1.4;box-shadow:4px 4px 0 rgba(0,0,0,0.3);">&#9664; TORNA ALLA HOME</button>
+<button onclick="window.location.href='../codebase/index.html'" style="position:fixed;top:16px;right:16px;z-index:9999;font-family:'Jersey 15',sans-serif;background:transparent;color:rgba(255,255,255,0.6);border:2px solid rgba(255,255,255,0.1);padding:12px 22px;cursor:pointer;font-size:1.1rem;transition:all 0.3s ease;" onmouseover="this.style.color='#cc2222';this.style.borderColor='rgba(204,34,34,0.3)'" onmouseout="this.style.color='rgba(255,255,255,0.6)';this.style.borderColor='rgba(255,255,255,0.1)'">&#9664; TORNA ALLA HOME</button>
+
+<script>
+var pColors = ['rgba(204,34,34,0.3)', 'rgba(204,34,34,0.2)', 'rgba(255,80,80,0.15)', 'rgba(150,20,20,0.25)'];
+var p = document.getElementById('particles');
+if (p) {
+  for (var i = 0; i < 40; i++) {
+    var el = document.createElement('div');
+    el.className = 'pixel';
+    el.style.left = Math.random() * 100 + '%';
+    var sz = [4,6,8,10][Math.floor(Math.random() * 4)];
+    el.style.width = sz + 'px'; el.style.height = sz + 'px';
+    el.style.background = pColors[Math.floor(Math.random() * 4)];
+    el.style.animationDuration = (25 + Math.random() * 30) + 's';
+    el.style.animationDelay = (Math.random() * 30) + 's';
+    p.appendChild(el);
+  }
+}
+</script>
+
+<script>
+var glow = document.getElementById('cursor-glow');
+document.addEventListener('mousemove', function(e) {
+  glow.style.transform = 'translate(' + (e.clientX - 90) + 'px, ' + (e.clientY - 90) + 'px)';
+});
+</script>
 </body>
 </html>
