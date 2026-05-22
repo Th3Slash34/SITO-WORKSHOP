@@ -132,11 +132,11 @@
   </div>
 
   <input type="file" id="file-input" accept="image/*" style="display:none">
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.21.0/dist/tf-core.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@4.21.0/dist/tf-converter.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.21.0/dist/tf-backend-webgl.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/hand-pose-detection@2.2.0/dist/hand-pose-detection.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/hand-pose-detection"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
 
   <script>
     const video = document.getElementById('video');
@@ -368,7 +368,7 @@
         const model = handPoseDetection.SupportedModels.MediaPipeHands;
         const detector = await handPoseDetection.createDetector(model, {
           runtime: 'mediapipe',
-          solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240',
+          solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/hands',
           modelType: 'full',
           maxHands: 2
         });
